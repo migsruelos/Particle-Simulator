@@ -85,19 +85,19 @@ class Canvas extends JPanel {
     void addParticles(int n, double startX, double startY, double endX, double endY,
                       double initialAngle, double velocity) {
         for (int i = 0; i < n; i++) {
-            // Generate random starting coordinates within the specified range
             double randomX = startX + Math.random() * (endX - startX);
             double randomY = startY + Math.random() * (endY - startY);
-
-            // Create a particle with random starting coordinates
             particles.add(new Particle(randomX, randomY, initialAngle, velocity));
         }
     }
 
 
+
     void addWalls(double x1, double y1, double x2, double y2) {
-        walls.add(new Line2D.Double(x1, y1, x2, y2));
+        // Ensure that x1 and x2 are the same to create a vertical wall
+        walls.add(new Line2D.Double(x1, y1, x1, y2));
     }
+
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -145,8 +145,11 @@ class Canvas extends JPanel {
             Canvas canvas = simulator.getCanvas();
 
             // Adding walls to the canvas
-            canvas.addWalls(50, 200, 300, 500);
-            canvas.addWalls(500, 200, 300, 500);
+            canvas.addWalls(200, 200, 400, 400);
+            canvas.addWalls(400, 400, 200, 200);
+            canvas.addWalls(200, 200, 400, 200);
+            canvas.addWalls(400, 200, 400, 400);
+
 
 
             Timer timer = new Timer(20, e -> {
