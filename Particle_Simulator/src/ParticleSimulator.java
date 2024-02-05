@@ -17,11 +17,15 @@ public class ParticleSimulator extends JFrame {
         Timer timer = new Timer(20, new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                new Thread(() -> {
+                SwingUtilities.invokeLater(() -> {
                     canvas.update();
-                }).start();
+                });
             }
         });
         timer.start();
+    }
+
+    public Canvas getCanvas() {
+        return canvas;
     }
 }
