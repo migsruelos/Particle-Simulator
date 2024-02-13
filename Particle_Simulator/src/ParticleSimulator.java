@@ -9,8 +9,43 @@ class ParticleSimulator extends JFrame {
 
     ParticleSimulator() {
         setTitle("Particle Simulator");
+        JPanel panel = new JPanel();
+        panel.setOpaque(false);
+        panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
+
         canvas = new Canvas();
-        add(canvas);
+        panel.add(canvas);
+        JPanel buttonPanel = new JPanel();
+        // buttonPanel.setBackground(Color.BLACK);
+        buttonPanel.setOpaque(false);
+        buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
+
+        JButton particleButton = new JButton();
+        particleButton.setText("Add Particle");
+        particleButton.setSize(12, 16);
+        particleButton.addActionListener(e -> {
+            JButton button = (JButton) e.getSource();
+            JFrame frame = (JFrame) SwingUtilities.windowForComponent(button);
+
+            ParticleInputDialog particleDialog = new ParticleInputDialog(frame);
+            particleDialog.setVisible(true);
+        });
+        buttonPanel.add(particleButton);
+
+        JButton wallButton = new JButton();
+        wallButton.setText("Add Wall");
+        wallButton.setSize(12, 16);
+        wallButton.addActionListener(e -> {
+            JButton button = (JButton) e.getSource();
+            JFrame frame = (JFrame) SwingUtilities.windowForComponent(button);
+
+            WallInputDialog wallDialog = new WallInputDialog(frame, canvas);
+            wallDialog.setVisible(true);
+        });
+        buttonPanel.add(wallButton);
+
+        panel.add(buttonPanel);
+        add(panel);
         setSize(1280, 720);
 
         // Create and execute SwingWorker in a separate thread
