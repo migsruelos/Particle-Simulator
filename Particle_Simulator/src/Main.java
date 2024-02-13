@@ -26,7 +26,9 @@ class Particle {
 
         // Check for collisions with walls
         for (Line2D.Double wall : walls) {
-            if (wall.intersects(newX, newY, 10, 10)) {
+            // Get the distance from the particle center to the wall
+            double dist = wall.ptSegDist(newX, newY);
+            if (dist < 5) {
                 // Particle collided with the wall, reflect its angle
                 double wallAngle = Math.toDegrees(Math.atan2(wall.y2 - wall.y1, wall.x2 - wall.x1));
                 double normalAngle = wallAngle + 90;
@@ -34,6 +36,8 @@ class Particle {
                 double reflectionAngle = incidentAngle;
 
                 angle = reflectionAngle;
+
+                break;
             }
         }
 
