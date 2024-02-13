@@ -8,6 +8,7 @@ class ParticleSimulator extends JFrame {
     private Canvas canvas;
 
     ParticleSimulator() {
+        setTitle("Particle Simulator");
         canvas = new Canvas();
         add(canvas);
         setSize(1280, 720);
@@ -109,7 +110,7 @@ class ParticleInputDialog extends JDialog {
 
             // Add particles to the canvas
             Canvas canvas = ((ParticleSimulator) getParent()).getCanvas();
-            canvas.addParticles(particleCount, startX, startY, endX, endY, 45, 50);
+            canvas.addParticles(particleCount, startX, startY, endX, endY, 45, 80);
 
             // Close the dialog
             setVisible(false);
@@ -141,6 +142,7 @@ class ParticleInputDialog extends JDialog {
 }
 
 class WallInputDialog extends JDialog {
+    private boolean dialogOpen = false;
     private JTextField wallX1Field;
     private JTextField wallY1Field;
     private JTextField wallX2Field;
