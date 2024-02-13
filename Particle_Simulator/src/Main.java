@@ -26,17 +26,14 @@ class Particle {
 
         // Check for collisions with walls
         for (Line2D.Double wall : walls) {
-            if (wall.intersectsLine(x, y, newX, newY)) {
+            if (wall.intersects(newX, newY, 10, 10)) {
                 // Particle collided with the wall, reflect its angle
                 double wallAngle = Math.toDegrees(Math.atan2(wall.y2 - wall.y1, wall.x2 - wall.x1));
-                double normalAngle = wallAngle + 90; // Calculate the normal angle to the wall
-                double incidentAngle = angle - wallAngle;
-                double reflectionAngle = 180 - incidentAngle;
+                double normalAngle = wallAngle + 90;
+                double incidentAngle = normalAngle - angle;
+                double reflectionAngle = incidentAngle;
 
-                // Calculate the reflection angle using the law of reflection
-                angle = reflectionAngle + wallAngle;
-
-                break; // Stop checking other walls after the first collision
+                angle = reflectionAngle;
             }
         }
 
@@ -59,7 +56,7 @@ class Canvas extends JPanel {
 
     private int frameCount = 0;
     private int fps;
-    private long lastFPSTime = System.currentTimeMillis();;
+    private long lastFPSTime = System.currentTimeMillis();
 
     Canvas() {
         particles = new ArrayList<>();
@@ -95,7 +92,7 @@ class Canvas extends JPanel {
 
     void addWalls(double x1, double y1, double x2, double y2) {
         // Ensure that x1 and x2 are the same to create a vertical wall
-        walls.add(new Line2D.Double(x1, y1, x1, y2));
+        walls.add(new Line2D.Double(x1, y1, x2, y2));
     }
 
 
