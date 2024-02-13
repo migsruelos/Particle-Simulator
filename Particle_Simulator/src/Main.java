@@ -144,12 +144,6 @@ class Canvas extends JPanel {
             // Access the Canvas instance from ParticleSimulator
             Canvas canvas = simulator.getCanvas();
 
-            // Adding walls to the canvas
-            canvas.addWalls(200, 200, 400, 400);
-            canvas.addWalls(400, 400, 200, 200);
-            canvas.addWalls(200, 200, 400, 200);
-            canvas.addWalls(400, 200, 400, 400);
-
 
 
             Timer timer = new Timer(20, e -> {
