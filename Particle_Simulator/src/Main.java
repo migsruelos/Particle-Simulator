@@ -88,13 +88,24 @@ class Canvas extends JPanel {
         }
     }
 
+    void addParticlesByAngle(int n, double startX, double startY, double velocity, double startAngle, double endAngle) {
+        for (int i = 0; i < n; i++) {
+            double randomAngle = startY + Math.random() * (endAngle - startAngle);
+            particles.add(new Particle(startX, startY, randomAngle, velocity));
+        }
+    }
 
+    void addParticlesByVelocity(int n, double startX, double startY, double Angle, double startVelocity, double endVelocity) {
+        for (int i = 0; i < n; i++) {
+            double randomVelocity = startX + Math.random() * (endVelocity - startVelocity);
+            particles.add(new Particle(startX, startY, Angle, randomVelocity));
+        }
+    }
 
     void addWalls(double x1, double y1, double x2, double y2) {
         // Ensure that x1 and x2 are the same to create a vertical wall
         walls.add(new Line2D.Double(x1, y1, x2, y2));
     }
-
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -117,7 +128,6 @@ class Canvas extends JPanel {
 
     }
 
-
     void update() {
         calculateFPS();
         // Update particle positions
@@ -129,8 +139,6 @@ class Canvas extends JPanel {
         repaint();
     }
 
-
-
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             ParticleSimulator simulator = new ParticleSimulator();
@@ -140,8 +148,6 @@ class Canvas extends JPanel {
 
             // Access the Canvas instance from ParticleSimulator
             Canvas canvas = simulator.getCanvas();
-
-
 
             Timer timer = new Timer(20, e -> {
                 canvas.update();
