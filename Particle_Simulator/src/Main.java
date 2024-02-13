@@ -99,10 +99,10 @@ class Canvas extends JPanel {
         }
     }
 
-    void addParticlesByVelocity(int n, double startX, double startY, double Angle, double startVelocity, double endVelocity) {
+    void addParticlesByVelocity(int n, double startX, double startY, double angle, double startVelocity, double endVelocity) {
         for (int i = 0; i < n; i++) {
             double randomVelocity = startX + Math.random() * (endVelocity - startVelocity);
-            particles.add(new Particle(startX, startY, Angle, randomVelocity));
+            particles.add(new Particle(startX, startY, angle, randomVelocity));
         }
     }
 
