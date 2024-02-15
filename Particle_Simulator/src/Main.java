@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.concurrent.RecursiveAction;
+import java.util.concurrent.ForkJoinPool;
 
 class Particle {
     double x, y; // Position
@@ -26,7 +27,7 @@ class Particle {
     }
 
     private static class MoveTask extends RecursiveAction {
-        private static final int THRESHOLD = 5; // Adjust as needed
+        private static final int THRESHOLD = 5;
         private Particle particle;
         private double deltaTime;
         private List<Line2D.Double> walls;
@@ -39,9 +40,23 @@ class Particle {
 
         @Override
         protected void compute() {
-            // Update particle position based on velocity and angle
-            double newX = particle.x + particle.velocity * Math.cos(Math.toRadians(particle.angle)) * deltaTime;
-            double newY = particle.y + particle.velocity * Math.sin(Math.toRadians(particle.angle)) * deltaTime;
+            if (walls.size() <= THRESHOLD) {
+                // If the number of walls is below the threshold, perform computation directly
+                computeDirectly();
+            } else {
+                // Split the task into smaller tasks
+                List<MoveTask> subtasks = createSubtasks();
+                invokeAll(subtasks);
+            }
+        }
+
+        private void computeDirectly() {
+            double newX, newY;
+            synchronized (particle) {
+                // Update particle position based on velocity and angle
+                newX = particle.x + particle.velocity * Math.cos(Math.toRadians(particle.angle)) * deltaTime;
+                newY = particle.y + particle.velocity * Math.sin(Math.toRadians(particle.angle)) * deltaTime;
+            }
 
             // Check for collisions with walls
             for (Line2D.Double wall : walls) {
@@ -53,7 +68,9 @@ class Particle {
                     double incidentAngle = Math.toDegrees(Math.atan2(newY - particle.y, newX - particle.x));
                     double reflectionAngle = 2 * wallAngle - incidentAngle;
 
-                    particle.angle = reflectionAngle;
+                    synchronized (particle) {
+                        particle.angle = reflectionAngle;
+                    }
 
                     // Stop checking other walls after the first collision
                     return;
@@ -62,17 +79,32 @@ class Particle {
 
             // Bounce off the canvas borders
             if (newX < 0 || newX > 1260) {
-                particle.angle = 180 - particle.angle;
+                synchronized (particle) {
+                    particle.angle = 180 - particle.angle;
+                }
             }
             if (newY < 0 || newY > 680) {
-                particle.angle = -particle.angle;
+                synchronized (particle) {
+                    particle.angle =- particle.angle;
+                }
             }
 
             // Update particle position based on the corrected angle
-            particle.x = newX;
-            particle.y = newY;
+            synchronized (particle) {
+                particle.x = newX;
+                particle.y = newY;
+            }
         }
 
+        private List<MoveTask> createSubtasks() {
+            // Split the walls into sublists and create subtasks
+            int size = walls.size();
+            int split = size / 2;
+            List<MoveTask> subtasks = new ArrayList<>();
+            subtasks.add(new MoveTask(particle, deltaTime, walls.subList(0, split)));
+            subtasks.add(new MoveTask(particle, deltaTime, walls.subList(split, size)));
+            return subtasks;
+        }
     }
 }
 
@@ -115,51 +147,86 @@ class Canvas extends JPanel {
         }
     }
 
+    void addParticlesByAngle(int n, double startX, double startY, double velocity, double startAngle, double endAngle) {
+        for (int i = 0; i < n; i++) {
+            double randomAngle = startY + Math.random() * (endAngle - startAngle);
+            particles.add(new Particle(startX, startY, randomAngle, velocity));
+        }
+    }
+
+    void addParticlesByVelocity(int n, double startX, double startY, double angle, double startVelocity, double endVelocity) {
+        for (int i = 0; i < n; i++) {
+            double randomVelocity = startX + Math.random() * (endVelocity - startVelocity);
+            particles.add(new Particle(startX, startY, angle, randomVelocity));
+        }
+    }
+
 
     void addWalls(double x1, double y1, double x2, double y2) {
         // Ensure that x1 and x2 are the same to create a vertical wall
         walls.add(new Line2D.Double(x1, y1, x1, y2));
     }
 
-
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        // Draw particles
-        g.setColor(Color.GREEN);
+
+        // Create offscreen buffer
+        Image offscreen = createImage(getWidth(), getHeight());
+        Graphics offscreenGraphics = offscreen.getGraphics();
+
+        // Draw particles on the offscreen buffer
+        offscreenGraphics.setColor(Color.GREEN);
         for (Particle particle : particles) {
-            g.fillOval((int) particle.x - 5, (int) particle.y - 5, 10, 10);
+            offscreenGraphics.fillOval((int) particle.x - 5, (int) particle.y - 5, 10, 10);
         }
 
-        // Draw walls
-        g.setColor(Color.BLUE);
+        // Draw walls on the offscreen buffer
+        offscreenGraphics.setColor(Color.BLUE);
         for (Line2D wall : walls) {
-            g.drawLine((int) wall.getX1(), (int) wall.getY1(), (int) wall.getX2(), (int) wall.getY2());
+            offscreenGraphics.drawLine((int) wall.getX1(), (int) wall.getY1(), (int) wall.getX2(), (int) wall.getY2());
         }
 
-        // Draw FPS
-        g.setColor(Color.BLACK);
-        g.drawString("FPS: " + calculateFPS(), 10, 20);
+        // Draw FPS on the offscreen buffer
+        offscreenGraphics.setColor(Color.BLACK);
+        offscreenGraphics.drawString("FPS: " + calculateFPS(), 10, 20);
 
+        // Copy the offscreen buffer to the screen
+        g.drawImage(offscreen, 0, 0, this);
     }
+
 
 
     void update() {
         calculateFPS();
-        // method to update particle positions using parallel processing
         double deltaTime = 0.05;
+
+        // Calculate the desired time for each frame (targeting 60 FPS)
+        long desiredFrameTime = 1000 / 60;
+        long currentTime = System.currentTimeMillis();
+
+        // Separate rendering tasks for particles and walls
         int numThreads = Runtime.getRuntime().availableProcessors();
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
-        List<Future<?>> futures = new ArrayList<>();
+        List<Future<?>> renderingFutures = new ArrayList<>();
 
-        for (Particle particle : particles) {
-            Future<?> future = executorService.submit(() -> particle.move(deltaTime, walls));
-            futures.add(future);
-        }
+        // Submit rendering tasks for particles
+        Future<?> particlesRenderingFuture = executorService.submit(() -> {
+            for (Particle particle : particles) {
+                particle.move(deltaTime, walls);
+            }
+        });
+        renderingFutures.add(particlesRenderingFuture);
 
-        // wait for all tasks to finish before shutdown
+        // Submit rendering task for walls
+        Future<?> wallsRenderingFuture = executorService.submit(() -> {
+            repaint();
+        });
+        renderingFutures.add(wallsRenderingFuture);
+
+        // Wait for all rendering tasks to complete
         try {
-            for (Future<?> future : futures) {
+            for (Future<?> future : renderingFutures) {
                 future.get();
             }
         } catch (InterruptedException | ExecutionException e) {
@@ -168,7 +235,17 @@ class Canvas extends JPanel {
             executorService.shutdown();
         }
 
-        repaint();
+        // Calculate the time taken for the update and rendering tasks
+        long elapsedTime = System.currentTimeMillis() - currentTime;
+
+        // Sleep to maintain a consistent frame rate
+        long sleepTime = Math.max(0, desiredFrameTime - elapsedTime);
+
+        try {
+            Thread.sleep(sleepTime);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {
