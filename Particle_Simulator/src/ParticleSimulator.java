@@ -79,7 +79,6 @@ class ParticleSimulator extends JFrame {
         SwingWorker<Void, Void> worker = new SwingWorker<>() {
             @Override
             protected Void doInBackground() {
-                collectUserParticleInput();  // Collect user input for particles on a separate thread
                 return null;
             }
 
