@@ -1,4 +1,3 @@
-import javax.sound.sampled.Line;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -6,6 +5,8 @@ import java.awt.event.ActionListener;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.RecursiveAction;
 
 class Particle {
     double x, y; // Position
@@ -20,36 +21,58 @@ class Particle {
     }
 
     void move(double deltaTime, List<Line2D.Double> walls) {
-        // Update particle position based on velocity and angle
-        double newX = x + velocity * Math.cos(Math.toRadians(angle)) * deltaTime;
-        double newY = y + velocity * Math.sin(Math.toRadians(angle)) * deltaTime;
+        ForkJoinPool pool = new ForkJoinPool();
+        pool.invoke(new MoveTask(this, deltaTime, walls));
+    }
 
-        // Check for collisions with walls
-        for (Line2D.Double wall : walls) {
-            if (wall.intersectsLine(x, y, newX, newY)) {
-                // Particle collided with the wall, reflect its angle
-                double wallAngle = Math.toDegrees(Math.atan2(wall.y2 - wall.y1, wall.x2 - wall.x1));
-                double normalAngle = wallAngle + 90; // Calculate the normal angle to the wall
-                double incidentAngle = angle - wallAngle;
-                double reflectionAngle = 180 - incidentAngle;
+    private static class MoveTask extends RecursiveAction {
+        private static final int THRESHOLD = 5; // Adjust as needed
+        private Particle particle;
+        private double deltaTime;
+        private List<Line2D.Double> walls;
 
-                // Calculate the reflection angle using the law of reflection
-                angle = reflectionAngle + wallAngle;
+        MoveTask(Particle particle, double deltaTime, List<Line2D.Double> walls) {
+            this.particle = particle;
+            this.deltaTime = deltaTime;
+            this.walls = walls;
+        }
 
-                break; // Stop checking other walls after the first collision
+        @Override
+        protected void compute() {
+            // Update particle position based on velocity and angle
+            double newX = particle.x + particle.velocity * Math.cos(Math.toRadians(particle.angle)) * deltaTime;
+            double newY = particle.y + particle.velocity * Math.sin(Math.toRadians(particle.angle)) * deltaTime;
+
+            // Check for collisions with walls
+            for (Line2D.Double wall : walls) {
+                if (wall.intersectsLine(particle.x, particle.y, newX, newY)) {
+                    // Particle collided with the wall, reflect its angle
+                    double wallAngle = Math.toDegrees(Math.atan2(wall.y2 - wall.y1, wall.x2 - wall.x1));
+
+                    // Calculate the reflection angle using the law of reflection
+                    double incidentAngle = Math.toDegrees(Math.atan2(newY - particle.y, newX - particle.x));
+                    double reflectionAngle = 2 * wallAngle - incidentAngle;
+
+                    particle.angle = reflectionAngle;
+
+                    // Stop checking other walls after the first collision
+                    return;
+                }
             }
+
+            // Bounce off the canvas borders
+            if (newX < 0 || newX > 1260) {
+                particle.angle = 180 - particle.angle;
+            }
+            if (newY < 0 || newY > 680) {
+                particle.angle = -particle.angle;
+            }
+
+            // Update particle position based on the corrected angle
+            particle.x = newX;
+            particle.y = newY;
         }
 
-        x = newX;
-        y = newY;
-
-        // Bounce off the canvas borders
-        if (x < 0 || x > 1260) {
-            angle = 180 - angle;
-        }
-        if (y < 0 || y > 680) {
-            angle = -angle;
-        }
     }
 }
 
@@ -59,7 +82,8 @@ class Canvas extends JPanel {
 
     private int frameCount = 0;
     private int fps;
-    private long lastFPSTime = System.currentTimeMillis();;
+    private long lastFPSTime = System.currentTimeMillis();
+    ;
 
     Canvas() {
         particles = new ArrayList<>();
@@ -92,7 +116,6 @@ class Canvas extends JPanel {
     }
 
 
-
     void addWalls(double x1, double y1, double x2, double y2) {
         // Ensure that x1 and x2 are the same to create a vertical wall
         walls.add(new Line2D.Double(x1, y1, x1, y2));
@@ -123,33 +146,34 @@ class Canvas extends JPanel {
 
     void update() {
         calculateFPS();
-        // Update particle positions
-        double deltaTime = 0.05; // You may adjust this based on your requirements
+        // method to update particle positions using parallel processing
+        double deltaTime = 0.05;
+        int numThreads = Runtime.getRuntime().availableProcessors();
+        ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+        List<Future<?>> futures = new ArrayList<>();
+
         for (Particle particle : particles) {
-            particle.move(deltaTime, walls);
+            Future<?> future = executorService.submit(() -> particle.move(deltaTime, walls));
+            futures.add(future);
+        }
+
+        // wait for all tasks to finish before shutdown
+        try {
+            for (Future<?> future : futures) {
+                future.get();
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            e.printStackTrace();
+        } finally {
+            executorService.shutdown();
         }
 
         repaint();
     }
 
-
-
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            ParticleSimulator simulator = new ParticleSimulator();
-            simulator.setSize(1280, 720);
-            simulator.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-            simulator.setVisible(true);
-
-            // Access the Canvas instance from ParticleSimulator
-            Canvas canvas = simulator.getCanvas();
-
-
-
-            Timer timer = new Timer(20, e -> {
-                canvas.update();
-            });
-            timer.start();
-        });
+        new ParticleSimulator();
     }
 }
+
+
