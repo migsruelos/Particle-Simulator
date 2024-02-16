@@ -1,0 +1,10 @@
+References:
+
+https://ecomputernotes.com/java/java2d/line2d
+https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/ExecutorService.html
+https://jenkov.com/tutorials/java-util-concurrent/executorservice.html
+http://www.java2s.com/Code/Java/Swing-JFC/Swinginvokelater.htm
+https://www.tabnine.com/code/java/methods/javax.swing.SwingUtilities/invokeLater
+https://www.studytonight.com/java/java-awt.php
+https://medium.com/javarevisited/java-completablefuture-c47ca8c885af
+https://www.geeksforgeeks.org/completablefuture-in-java/
