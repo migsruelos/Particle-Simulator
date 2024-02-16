@@ -1,8 +1,5 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.util.concurrent.ExecutionException;
 
 class ParticleSimulator extends JFrame {
     private Canvas canvas;
@@ -53,7 +50,7 @@ class ParticleSimulator extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
 
-        // Timer for updating the canvas on the EDT
+        // timer to update the canvas on the EDT
         Timer timer = new Timer(15, e -> {
             canvas.update();
         });
@@ -107,7 +104,7 @@ class ParticleByDistanceInputDialog extends JDialog {
             double endX = Double.parseDouble(endXField.getText());
             double endY = Double.parseDouble(endYField.getText());
 
-            // add particles to the canvas
+            // add particles to canvas
             Canvas canvas = ((ParticleSimulator) getParent()).getCanvas();
             canvas.addParticles(particleCount, startX, startY, endX, endY, 45, 80);
 
@@ -174,7 +171,7 @@ class ParticleByAngleInputDialog extends JDialog {
             double startAngle = Double.parseDouble(startAngleField.getText());
             double endAngle = Double.parseDouble(endAngleField.getText());
 
-            // add particles to the canvas
+            // add particles to canvas
             Canvas canvas = ((ParticleSimulator) getParent()).getCanvas();
             canvas.addParticlesByAngle(particleCount, 100, 100, 80, startAngle, endAngle);
 
@@ -236,16 +233,16 @@ class ParticleByVelocityInputDialog extends JDialog {
 
         JButton submitButton = new JButton("Submit");
         submitButton.addActionListener(e -> {
-            // Get user input values
+            // get user input
             int particleCount = Integer.parseInt(particleCountField.getText());
             double startVelocity= Double.parseDouble(startVelocityField.getText());
             double endVelocity = Double.parseDouble(endVelocityField.getText());
 
-            // Add particles to the canvas
+            // add particles to canvas
             Canvas canvas = ((ParticleSimulator) getParent()).getCanvas();
             canvas.addParticlesByVelocity(particleCount, 100, 100, 45, startVelocity, endVelocity);
 
-            // Close the dialog
+            // close the dialog
             setVisible(false);
         });
 
@@ -309,16 +306,16 @@ class WallInputDialog extends JDialog {
 
         JButton submitButton = new JButton("Submit");
         submitButton.addActionListener(e -> {
-            // Get user input values for walls
+            // get user input
             double wallX1 = Double.parseDouble(wallX1Field.getText());
             double wallY1 = Double.parseDouble(wallY1Field.getText());
             double wallX2 = Double.parseDouble(wallX2Field.getText());
             double wallY2 = Double.parseDouble(wallY2Field.getText());
 
-            // Add walls to the canvas
+            // add walls to canvas
             canvas.addWalls(wallX1, wallY1, wallX2, wallY2);
 
-            // Close the dialog
+            // close the dialog
             setVisible(false);
         });
 

@@ -1,18 +1,14 @@
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.geom.Line2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.RecursiveAction;
-import java.util.concurrent.ForkJoinPool;
 
 class Particle {
-    double x, y; // Position
-    double angle; // Angle in degrees (0 is east, increases anticlockwise)
-    double velocity; // Velocity in pixels per second
+    double x, y; // position
+    double angle; // angle in degrees
+    double velocity; // velocity in pixels per second
 
     Particle(double x, double y, double angle, double velocity) {
         this.x = x;
@@ -22,95 +18,52 @@ class Particle {
     }
 
     void move(double deltaTime, List<Line2D.Double> walls) {
-        ForkJoinPool pool = new ForkJoinPool();
-        pool.invoke(new MoveTask(this, deltaTime, walls));
+        Executor executor = Executors.newWorkStealingPool();
+
+        // check collision concurrently
+        CompletableFuture<Void>[] futures = walls.stream()
+                .map(wall -> CompletableFuture.runAsync(() -> checkCollision(wall, deltaTime), executor))
+                .toArray(CompletableFuture[]::new);
+
+        // wait for computations to finish
+        CompletableFuture.allOf(futures).join();
+
+        // update particle position
+        double newX = x + velocity * Math.cos(Math.toRadians(angle)) * deltaTime;
+        double newY = y + velocity * Math.sin(Math.toRadians(angle)) * deltaTime;
+        x = newX;
+        y = newY;
+
+        // check collision on borders
+        if (newX < 0 || newX > 1260) {
+            angle = 180 - angle;
+        }
+        if (newY < 0 || newY > 680) {
+            angle = -angle;
+        }
     }
 
-    private static class MoveTask extends RecursiveAction {
-        private static final int THRESHOLD = 5;
-        private Particle particle;
-        private double deltaTime;
-        private List<Line2D.Double> walls;
+    private void checkCollision(Line2D.Double wall, double deltaTime) {
+        double newX, newY;
+        // updates particle position based on velocity and angle
+        newX = x + velocity * Math.cos(Math.toRadians(angle)) * deltaTime;
+        newY = y + velocity * Math.sin(Math.toRadians(angle)) * deltaTime;
 
-        MoveTask(Particle particle, double deltaTime, List<Line2D.Double> walls) {
-            this.particle = particle;
-            this.deltaTime = deltaTime;
-            this.walls = walls;
-        }
+        // wall collision checker
+        if (wall.intersectsLine(x, y, newX, newY)) {
+            // calculate collision/reflection angle
+            double wallAngle = Math.toDegrees(Math.atan2(wall.y2 - wall.y1, wall.x2 - wall.x1));
+            double incidentAngle = Math.toDegrees(Math.atan2(newY - y, newX - x));
+            double reflectionAngle = 2 * wallAngle - incidentAngle;
 
-        @Override
-        protected void compute() {
-            if (walls.size() <= THRESHOLD) {
-                // if the number of walls is below the threshold, perform computation directly
-                computeDirectly();
-            } else {
-                // generate subtasks
-                List<MoveTask> subtasks = createSubtasks();
-                invokeAll(subtasks);
-            }
-        }
-
-        private void computeDirectly() {
-            double newX, newY;
-            synchronized (particle) {
-                // updates the particle position based on velocity and angle
-                newX = particle.x + particle.velocity * Math.cos(Math.toRadians(particle.angle)) * deltaTime;
-                newY = particle.y + particle.velocity * Math.sin(Math.toRadians(particle.angle)) * deltaTime;
-            }
-
-            // wall collision checker
-            for (Line2D.Double wall : walls) {
-                if (wall.intersectsLine(particle.x, particle.y, newX, newY)) {
-                    // if the particle collides with the wall, reflect its angle
-                    double wallAngle = Math.toDegrees(Math.atan2(wall.y2 - wall.y1, wall.x2 - wall.x1));
-
-                    // calculate the reflection angle using the law of reflection
-                    double incidentAngle = Math.toDegrees(Math.atan2(newY - particle.y, newX - particle.x));
-                    double reflectionAngle = 2 * wallAngle - incidentAngle;
-
-                    synchronized (particle) {
-                        particle.angle = reflectionAngle;
-                    }
-
-                    // stop checking other walls after the first collision
-                    return;
-                }
-            }
-
-            // check for collision off the canvas borders (adjusted size so the particles don't go out of the frame)
-            if (newX < 0 || newX > 1260) {
-                synchronized (particle) {
-                    particle.angle = 180 - particle.angle;
-                }
-            }
-            if (newY < 0 || newY > 680) {
-                synchronized (particle) {
-                    particle.angle =- particle.angle;
-                }
-            }
-
-            // update the particle position based on the corrected angle
-            synchronized (particle) {
-                particle.x = newX;
-                particle.y = newY;
-            }
-        }
-
-        private List<MoveTask> createSubtasks() {
-            // divide the walls into sublists and create subtasks
-            int size = walls.size();
-            int split = size / 2;
-            List<MoveTask> subtasks = new ArrayList<>();
-            subtasks.add(new MoveTask(particle, deltaTime, walls.subList(0, split)));
-            subtasks.add(new MoveTask(particle, deltaTime, walls.subList(split, size)));
-            return subtasks;
+            angle = reflectionAngle;
         }
     }
 }
 
 class Canvas extends JPanel {
     private List<Particle> particles;
-    private List<Line2D.Double> walls; // Use Line2D for representing walls
+    private List<Line2D.Double> walls; // Line2D represents the walls
 
     private int frameCount = 0;
     private int fps;
@@ -121,6 +74,16 @@ class Canvas extends JPanel {
         particles = new ArrayList<>();
         walls = new ArrayList<>();
         setPreferredSize(new Dimension(1280, 720));
+
+        ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
+        executorService.scheduleAtFixedRate(this::calculateFPS, 0, 500, TimeUnit.MILLISECONDS);
+    }
+
+    private void updateFPS() {
+        fps = frameCount * 2;  // Multiply by 2 to convert from 0.5-second intervals to 1-second intervals
+        frameCount = 0;
+        lastFPSTime = System.currentTimeMillis();
+        repaint();
     }
 
     private int calculateFPS() {
@@ -129,10 +92,9 @@ class Canvas extends JPanel {
 
         frameCount++;
 
+        // update FPS every 0.5 seconds
         if (elapsedTime >= 500) {
-            fps = (int) (frameCount * 1000 / elapsedTime);
-            frameCount = 0;
-            lastFPSTime = currentTime;
+            updateFPS();
         }
 
         return fps;
@@ -201,7 +163,7 @@ class Canvas extends JPanel {
         double deltaTime = 0.05;
 
         // minimum target FPS: 60
-        long desiredFrameTime = 1000 / 60;
+        long targetFrameTime = 1000 / 60;
         long currentTime = System.currentTimeMillis();
 
         // split rendering tasks for particles and walls
@@ -210,12 +172,13 @@ class Canvas extends JPanel {
         List<Future<?>> renderingFutures = new ArrayList<>();
 
         // submit rendering tasks for particles
-        Future<?> particlesRenderingFuture = executorService.submit(() -> {
+        Future<?> renderingFuture = executorService.submit(() -> {
             for (Particle particle : particles) {
                 particle.move(deltaTime, walls);
             }
+            repaint();
         });
-        renderingFutures.add(particlesRenderingFuture);
+        renderingFutures.add(renderingFuture);
 
         // submit rendering task for walls
         Future<?> wallsRenderingFuture = executorService.submit(() -> {
@@ -238,7 +201,7 @@ class Canvas extends JPanel {
         long elapsedTime = System.currentTimeMillis() - currentTime;
 
         // sleep to maintain a consistent frame rate
-        long sleepTime = Math.max(0, desiredFrameTime - elapsedTime);
+        long sleepTime = Math.max(0, targetFrameTime - elapsedTime);
 
         try {
             Thread.sleep(sleepTime);
