@@ -10,3 +10,6 @@ Java 8 or higher.
 
 * Run the JAR file
   * This will open a window with 1280 x 720 pixel canvas. The coordinates (0, 0) is the southwest corner of the canvas, and the coordinate (1280, 720) is the northeast corner.
+* In this window, the user will be presented with four buttons.
+  * Three of the buttons are for the user to add particles.
+    
