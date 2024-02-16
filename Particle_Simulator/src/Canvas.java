@@ -209,10 +209,6 @@ class Canvas extends JPanel {
             e.printStackTrace();
         }
     }
-
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new ParticleSimulator());
-    }
 }
 
 

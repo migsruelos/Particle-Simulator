@@ -60,6 +60,10 @@ class ParticleSimulator extends JFrame {
     public Canvas getCanvas() {
         return canvas;
     }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new ParticleSimulator());
+    }
 }
 
 class ParticleByDistanceInputDialog extends JDialog {
