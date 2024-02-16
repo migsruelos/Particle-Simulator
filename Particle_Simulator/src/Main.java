@@ -163,35 +163,34 @@ class Canvas extends JPanel {
 
 
     void addWalls(double x1, double y1, double x2, double y2) {
-        // Ensure that x1 and x2 are the same to create a vertical wall
-        walls.add(new Line2D.Double(x1, y1, x1, y2));
+        walls.add(new Line2D.Double(x1, y1, x2, y2));
     }
 
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
 
-        // Create offscreen buffer
+
         Image offscreen = createImage(getWidth(), getHeight());
         Graphics offscreenGraphics = offscreen.getGraphics();
 
-        // Draw particles on the offscreen buffer
+
         offscreenGraphics.setColor(Color.GREEN);
         for (Particle particle : particles) {
             offscreenGraphics.fillOval((int) particle.x - 5, (int) particle.y - 5, 10, 10);
         }
 
-        // Draw walls on the offscreen buffer
+
         offscreenGraphics.setColor(Color.BLUE);
         for (Line2D wall : walls) {
             offscreenGraphics.drawLine((int) wall.getX1(), (int) wall.getY1(), (int) wall.getX2(), (int) wall.getY2());
         }
 
-        // Draw FPS on the offscreen buffer
+
         offscreenGraphics.setColor(Color.BLACK);
         offscreenGraphics.drawString("FPS: " + calculateFPS(), 10, 20);
 
-        // Copy the offscreen buffer to the screen
+
         g.drawImage(offscreen, 0, 0, this);
     }
 
