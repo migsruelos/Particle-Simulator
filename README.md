@@ -9,3 +9,4 @@ Java 8 or higher.
 # Usage
 
 * Run the JAR file
+  * This will open a window with 1280 x 720 pixel canvas. The coordinates (0, 0) is the southwest corner of the canvas, and the coordinate (1280, 720) is the northeast corner.
