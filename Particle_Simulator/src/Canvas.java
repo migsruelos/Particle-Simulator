@@ -80,7 +80,7 @@ class Canvas extends JPanel {
     }
 
     private void updateFPS() {
-        fps = frameCount * 2;  // Multiply by 2 to convert from 0.5-second intervals to 1-second intervals
+        fps = frameCount * 2;  
         frameCount = 0;
         lastFPSTime = System.currentTimeMillis();
         repaint();
