@@ -10,7 +10,6 @@ class ParticleSimulator extends JFrame {
     ParticleSimulator() {
         setTitle("Particle Simulator");
         JPanel panel = new JPanel();
-        panel.setOpaque(false);
         panel.setLayout(new BoxLayout(panel, BoxLayout.X_AXIS));
 
         canvas = new Canvas();
@@ -19,54 +18,30 @@ class ParticleSimulator extends JFrame {
         JPanel buttonPanel = new JPanel();
         buttonPanel.setLayout(new BoxLayout(buttonPanel, BoxLayout.Y_AXIS));
 
-        JButton particleByDistanceButton = new JButton();
-        particleByDistanceButton.setText("Add Particle (Distance)");
-        particleByDistanceButton.setSize(12, 16);
-        particleByDistanceButton.setAlignmentX(Container.RIGHT_ALIGNMENT);
+        JButton particleByDistanceButton = new JButton("Add Particle (Distance)");
         particleByDistanceButton.addActionListener(e -> {
-            JButton button = (JButton) e.getSource();
-            JFrame frame = (JFrame) SwingUtilities.windowForComponent(button);
-
-            ParticleByDistanceInputDialog particleByDistanceDialog = new ParticleByDistanceInputDialog(frame);
+            ParticleByDistanceInputDialog particleByDistanceDialog = new ParticleByDistanceInputDialog(this);
             particleByDistanceDialog.setVisible(true);
         });
         buttonPanel.add(particleByDistanceButton);
 
-        JButton particleByAngleButton = new JButton();
-        particleByAngleButton.setText("Add Particle (Angle)");
-        particleByAngleButton.setSize(12, 16);
-        particleByAngleButton.setAlignmentX(Container.RIGHT_ALIGNMENT);
+        JButton particleByAngleButton = new JButton("Add Particle (Angle)");
         particleByAngleButton.addActionListener(e -> {
-            JButton button = (JButton) e.getSource();
-            JFrame frame = (JFrame) SwingUtilities.windowForComponent(button);
-
-            ParticleByAngleInputDialog particleByAngleDialog = new ParticleByAngleInputDialog(frame);
+            ParticleByAngleInputDialog particleByAngleDialog = new ParticleByAngleInputDialog(this);
             particleByAngleDialog.setVisible(true);
         });
         buttonPanel.add(particleByAngleButton);
 
-        JButton particleByVelocityButton = new JButton();
-        particleByVelocityButton.setText("Add Particle (Velocity)");
-        particleByVelocityButton.setSize(12, 16);
-        particleByVelocityButton.setAlignmentX(Container.RIGHT_ALIGNMENT);
+        JButton particleByVelocityButton = new JButton("Add Particle (Velocity)");
         particleByVelocityButton.addActionListener(e -> {
-            JButton button = (JButton) e.getSource();
-            JFrame frame = (JFrame) SwingUtilities.windowForComponent(button);
-
-            ParticleByVelocityInputDialog particleByVelocityDialog = new ParticleByVelocityInputDialog(frame);
+            ParticleByVelocityInputDialog particleByVelocityDialog = new ParticleByVelocityInputDialog(this);
             particleByVelocityDialog.setVisible(true);
         });
         buttonPanel.add(particleByVelocityButton);
 
-        JButton wallButton = new JButton();
-        wallButton.setText("Add Wall");
-        wallButton.setSize(12, 16);
-        wallButton.setAlignmentX(Container.RIGHT_ALIGNMENT);
+        JButton wallButton = new JButton("Add Wall");
         wallButton.addActionListener(e -> {
-            JButton button = (JButton) e.getSource();
-            JFrame frame = (JFrame) SwingUtilities.windowForComponent(button);
-
-            WallInputDialog wallDialog = new WallInputDialog(frame, canvas);
+            WallInputDialog wallDialog = new WallInputDialog(this, canvas);
             wallDialog.setVisible(true);
         });
         buttonPanel.add(wallButton);
@@ -75,44 +50,11 @@ class ParticleSimulator extends JFrame {
         add(panel);
         setSize(1280, 720);
 
-        // Create and execute SwingWorker in a separate thread
-        SwingWorker<Void, Void> worker = new SwingWorker<>() {
-            @Override
-            protected Void doInBackground() {
-                return null;
-            }
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setVisible(true);
 
-            @Override
-            protected void done() {
-                // Start the main thread to display the GUI
-                SwingUtilities.invokeLater(() -> {
-                    setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                    setVisible(true);
-                    startSimulation();
-                });
-            }
-        };
-
-        worker.execute();
-    }
-
-
-    private void collectUserParticleInput() {
-        // Create a dialog to get user input for particles
-        ParticleByDistanceInputDialog particleDialog = new ParticleByDistanceInputDialog(this);
-        particleDialog.setVisible(true);
-
-        // Open WallInputDialog after submitting ParticleInputDialog
-        WallInputDialog wallDialog = new WallInputDialog(this, canvas);
-        wallDialog.setVisible(true);
-    }
-
-    private void startSimulation() {
-        // Access the Canvas instance from ParticleSimulator
-        Canvas canvas = this.canvas;
-
-        // Timer for updating the canvas
-        Timer timer = new Timer(20, e -> {
+        // Timer for updating the canvas on the EDT
+        Timer timer = new Timer(15, e -> {
             canvas.update();
         });
         timer.start();
@@ -158,18 +100,18 @@ class ParticleByDistanceInputDialog extends JDialog {
 
         JButton submitButton = new JButton("Submit");
         submitButton.addActionListener(e -> {
-            // Get user input values
+            // get user input
             int particleCount = Integer.parseInt(particleCountField.getText());
             double startX = Double.parseDouble(startXField.getText());
             double startY = Double.parseDouble(startYField.getText());
             double endX = Double.parseDouble(endXField.getText());
             double endY = Double.parseDouble(endYField.getText());
 
-            // Add particles to the canvas
+            // add particles to the canvas
             Canvas canvas = ((ParticleSimulator) getParent()).getCanvas();
             canvas.addParticles(particleCount, startX, startY, endX, endY, 45, 80);
 
-            // Close the dialog
+            // close the dialog
             setVisible(false);
         });
 
@@ -227,16 +169,16 @@ class ParticleByAngleInputDialog extends JDialog {
 
         JButton submitButton = new JButton("Submit");
         submitButton.addActionListener(e -> {
-            // Get user input values
+            // get user input
             int particleCount = Integer.parseInt(particleCountField.getText());
             double startAngle = Double.parseDouble(startAngleField.getText());
             double endAngle = Double.parseDouble(endAngleField.getText());
 
-            // Add particles to the canvas
+            // add particles to the canvas
             Canvas canvas = ((ParticleSimulator) getParent()).getCanvas();
             canvas.addParticlesByAngle(particleCount, 100, 100, 80, startAngle, endAngle);
 
-            // Close the dialog
+            // close the dialog
             setVisible(false);
         });
 

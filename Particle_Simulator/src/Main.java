@@ -41,10 +41,10 @@ class Particle {
         @Override
         protected void compute() {
             if (walls.size() <= THRESHOLD) {
-                // If the number of walls is below the threshold, perform computation directly
+                // if the number of walls is below the threshold, perform computation directly
                 computeDirectly();
             } else {
-                // Split the task into smaller tasks
+                // generate subtasks
                 List<MoveTask> subtasks = createSubtasks();
                 invokeAll(subtasks);
             }
@@ -53,18 +53,18 @@ class Particle {
         private void computeDirectly() {
             double newX, newY;
             synchronized (particle) {
-                // Update particle position based on velocity and angle
+                // updates the particle position based on velocity and angle
                 newX = particle.x + particle.velocity * Math.cos(Math.toRadians(particle.angle)) * deltaTime;
                 newY = particle.y + particle.velocity * Math.sin(Math.toRadians(particle.angle)) * deltaTime;
             }
 
-            // Check for collisions with walls
+            // wall collision checker
             for (Line2D.Double wall : walls) {
                 if (wall.intersectsLine(particle.x, particle.y, newX, newY)) {
-                    // Particle collided with the wall, reflect its angle
+                    // if the particle collides with the wall, reflect its angle
                     double wallAngle = Math.toDegrees(Math.atan2(wall.y2 - wall.y1, wall.x2 - wall.x1));
 
-                    // Calculate the reflection angle using the law of reflection
+                    // calculate the reflection angle using the law of reflection
                     double incidentAngle = Math.toDegrees(Math.atan2(newY - particle.y, newX - particle.x));
                     double reflectionAngle = 2 * wallAngle - incidentAngle;
 
@@ -72,12 +72,12 @@ class Particle {
                         particle.angle = reflectionAngle;
                     }
 
-                    // Stop checking other walls after the first collision
+                    // stop checking other walls after the first collision
                     return;
                 }
             }
 
-            // Bounce off the canvas borders
+            // check for collision off the canvas borders (adjusted size so the particles don't go out of the frame)
             if (newX < 0 || newX > 1260) {
                 synchronized (particle) {
                     particle.angle = 180 - particle.angle;
@@ -89,7 +89,7 @@ class Particle {
                 }
             }
 
-            // Update particle position based on the corrected angle
+            // update the particle position based on the corrected angle
             synchronized (particle) {
                 particle.x = newX;
                 particle.y = newY;
@@ -97,7 +97,7 @@ class Particle {
         }
 
         private List<MoveTask> createSubtasks() {
-            // Split the walls into sublists and create subtasks
+            // divide the walls into sublists and create subtasks
             int size = walls.size();
             int split = size / 2;
             List<MoveTask> subtasks = new ArrayList<>();
@@ -201,16 +201,16 @@ class Canvas extends JPanel {
         calculateFPS();
         double deltaTime = 0.05;
 
-        // Calculate the desired time for each frame (targeting 60 FPS)
+        // minimum target FPS: 60
         long desiredFrameTime = 1000 / 60;
         long currentTime = System.currentTimeMillis();
 
-        // Separate rendering tasks for particles and walls
+        // split rendering tasks for particles and walls
         int numThreads = Runtime.getRuntime().availableProcessors();
         ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
         List<Future<?>> renderingFutures = new ArrayList<>();
 
-        // Submit rendering tasks for particles
+        // submit rendering tasks for particles
         Future<?> particlesRenderingFuture = executorService.submit(() -> {
             for (Particle particle : particles) {
                 particle.move(deltaTime, walls);
@@ -218,13 +218,13 @@ class Canvas extends JPanel {
         });
         renderingFutures.add(particlesRenderingFuture);
 
-        // Submit rendering task for walls
+        // submit rendering task for walls
         Future<?> wallsRenderingFuture = executorService.submit(() -> {
             repaint();
         });
         renderingFutures.add(wallsRenderingFuture);
 
-        // Wait for all rendering tasks to complete
+        // wait for all rendering tasks to finish
         try {
             for (Future<?> future : renderingFutures) {
                 future.get();
@@ -235,10 +235,10 @@ class Canvas extends JPanel {
             executorService.shutdown();
         }
 
-        // Calculate the time taken for the update and rendering tasks
+        // calculates the time taken for the update and rendering tasks
         long elapsedTime = System.currentTimeMillis() - currentTime;
 
-        // Sleep to maintain a consistent frame rate
+        // sleep to maintain a consistent frame rate
         long sleepTime = Math.max(0, desiredFrameTime - elapsedTime);
 
         try {
@@ -249,7 +249,7 @@ class Canvas extends JPanel {
     }
 
     public static void main(String[] args) {
-        new ParticleSimulator();
+        SwingUtilities.invokeLater(() -> new ParticleSimulator());
     }
 }
 
