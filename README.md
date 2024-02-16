@@ -22,5 +22,6 @@ Java 8 or higher.
     * When adding walls using the addWalls method, the parameters x1, y1, x2, and y2 represent the pixel coordinates/positions of the two endpoints of a line segment on the canvas.
     * These values indicate the position of the wall in terms of pixels from the top-left corner of the canvas.
     * For example, you can add a wall with one endpoint at pixel coordinates (100, 200) and the other endpoint at (300, 400).
+    * To get a vertical wall, make sure that x1 and x2 have the same coordinates. To get a horizontal wall, make sure that y1 and y2 have the same coordinates.
       
 * Once the user has inputted their desired value, it will be visible to the user on the canvas after adding the submit button.
